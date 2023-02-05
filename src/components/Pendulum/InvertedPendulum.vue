@@ -15,7 +15,7 @@
       >
         <img
           class="wheel"
-          src="src/assets/wheel.svg"
+          src="@/assets/wheel.svg"
           :width="wheel_diameter * ppm"
           :height="wheel_diameter * ppm"
           :style="{ rotate: `${wheel_rotation}rad` }"
