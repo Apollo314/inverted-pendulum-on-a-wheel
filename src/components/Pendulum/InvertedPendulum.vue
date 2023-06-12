@@ -2,7 +2,7 @@
   <div
     class="viewport"
     :style="{
-      translate: `${-position * ppm}px`,
+      translate: `${beingHandled ? -lastPos * ppm : -position * ppm}px`,
       paddingTop: `${stick_length * ppm}px`,
     }"
   >
@@ -148,25 +148,48 @@ const emit = defineEmits<{
 
 const headBallRef = ref<SVGElement>();
 const bodyParentRef = ref<HTMLElement>();
+const lastPos = ref<number>(props.position || 0);
+const beingHandled = ref<boolean>(false);
+const lastMousePos = ref<{ x: number; y: number }>({ x: 0, y: 0 });
+const humanControllerInterval = ref<number>();
 
 function getCenter(rect: DOMRect): { x: number; y: number } {
   return { x: (rect.left + rect.right) / 2, y: (rect.top + rect.bottom) / 2 };
 }
 
 useDraggable(headBallRef, {
+  onStart: (_, event) => {
+    lastPos.value = props.position;
+    lastMousePos.value = { x: event.x, y: event.y };
+    beingHandled.value = true;
+    humanControllerInterval.value = setInterval(() => {
+      const bodyRect = bodyParentRef.value?.getBoundingClientRect();
+      if (bodyRect) {
+        const bodyPos = getCenter(bodyRect);
+        const pendAngle = Math.atan2(
+          -bodyPos.x + lastMousePos.value.x,
+          bodyPos.y - lastMousePos.value.y
+        );
+        emit("update:pendulum_angle", pendAngle);
+      }
+    }, 20);
+  },
   onMove: (_, event) => {
-    const bodyRect = bodyParentRef.value?.getBoundingClientRect();
-    const mousePos = { x: event.x, y: event.y };
-    if (bodyRect) {
-      const bodyPos = getCenter(bodyRect);
-      const pendAngle = Math.atan2(
-        -bodyPos.x + mousePos.x,
-        bodyPos.y - mousePos.y
-      );
-      emit("update:pendulum_angle", pendAngle);
-    }
+    lastMousePos.value = { x: event.x, y: event.y };
   },
   onEnd() {
+    let t = 0;
+    let lastPosBeforeInterval = lastPos.value;
+    let interval = setInterval(() => {
+      t += 20;
+      lastPos.value =
+        (lastPosBeforeInterval * (1000 - t) + props.position * t) / 1000;
+    }, 20);
+    setTimeout(() => {
+      clearInterval(interval);
+      beingHandled.value = false;
+    }, 1000);
+    clearInterval(humanControllerInterval.value);
     emit("dragend");
   },
 });
