@@ -178,17 +178,17 @@ useDraggable(headBallRef, {
     lastMousePos.value = { x: event.x, y: event.y };
   },
   onEnd() {
-    let t = 0;
+    let tstart = Date.now();
     let lastPosBeforeInterval = lastPos.value;
     let interval = setInterval(() => {
-      t += 20;
+      const t = Date.now() - tstart;
       lastPos.value =
-        (lastPosBeforeInterval * (1000 - t) + props.position * t) / 1000;
-    }, 20);
+        (lastPosBeforeInterval * (2000 - t) + props.position * t) / 2000;
+    }, 10);
     setTimeout(() => {
       clearInterval(interval);
       beingHandled.value = false;
-    }, 1000);
+    }, 2000);
     clearInterval(humanControllerInterval.value);
     emit("dragend");
   },
