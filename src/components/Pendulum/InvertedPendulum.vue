@@ -152,6 +152,8 @@ const lastPos = ref<number>(props.position || 0);
 const beingHandled = ref<boolean>(false);
 const lastMousePos = ref<{ x: number; y: number }>({ x: 0, y: 0 });
 const humanControllerInterval = ref<number>();
+const onEndTimeout = ref<number>();
+const onEndInterval = ref<number>();
 
 function getCenter(rect: DOMRect): { x: number; y: number } {
   return { x: (rect.left + rect.right) / 2, y: (rect.top + rect.bottom) / 2 };
@@ -159,7 +161,14 @@ function getCenter(rect: DOMRect): { x: number; y: number } {
 
 useDraggable(headBallRef, {
   onStart: (_, event) => {
-    lastPos.value = props.position;
+    clearInterval(humanControllerInterval.value);
+    if (onEndInterval.value !== undefined) {
+      clearInterval(onEndInterval.value);
+      clearTimeout(onEndTimeout.value);
+      onEndInterval.value = undefined;
+    } else {
+      lastPos.value = props.position;
+    }
     lastMousePos.value = { x: event.x, y: event.y };
     beingHandled.value = true;
     humanControllerInterval.value = setInterval(() => {
@@ -180,13 +189,13 @@ useDraggable(headBallRef, {
   onEnd() {
     let tstart = Date.now();
     let lastPosBeforeInterval = lastPos.value;
-    let interval = setInterval(() => {
+    onEndInterval.value = setInterval(() => {
       const t = Date.now() - tstart;
       lastPos.value =
         (lastPosBeforeInterval * (2000 - t) + props.position * t) / 2000;
     }, 10);
-    setTimeout(() => {
-      clearInterval(interval);
+    onEndTimeout.value = setTimeout(() => {
+      clearInterval(onEndInterval.value);
       beingHandled.value = false;
     }, 2000);
     clearInterval(humanControllerInterval.value);
